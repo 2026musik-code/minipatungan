@@ -6,12 +6,12 @@ node_compat = true
 # KV Namespace bindings
 [[kv_namespaces]]
 binding = "patungan"
-id = "<BIND_KV_ID_HERE>"
+id = "128e96cf8f334ca8a1b20897a65fefa8"
 
 # R2 Bucket bindings
 [[r2_buckets]]
-binding = "vps_ai"
-bucket_name = "<BIND_BUCKET_NAME_HERE>"
+binding = "vpsai"
+bucket_name = "vpsai"
 
 # To deploy, run:
 # npm install -g wrangler

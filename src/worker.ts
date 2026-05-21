@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 
 export type Bindings = {
   patungan: KVNamespace;
-  vps_ai: R2Bucket;
+  vpsai: R2Bucket;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
