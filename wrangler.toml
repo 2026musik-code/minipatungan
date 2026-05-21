@@ -1,7 +1,7 @@
 name = "patungantv-hono"
 main = "src/worker.ts"
 compatibility_date = "2024-05-21"
-node_compat = true
+compatibility_flags = [ "nodejs_compat" ]
 
 # KV Namespace bindings
 [[kv_namespaces]]
