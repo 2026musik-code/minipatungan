@@ -3,6 +3,10 @@ main = "src/worker.ts"
 compatibility_date = "2024-05-21"
 compatibility_flags = [ "nodejs_compat" ]
 
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
 # KV Namespace bindings
 [[kv_namespaces]]
 binding = "patungan"
@@ -14,5 +18,5 @@ binding = "vpsai"
 bucket_name = "vpsai"
 
 # To deploy, run:
-# npm install -g wrangler
-# wrangler deploy
+# npm run build
+# npx wrangler deploy

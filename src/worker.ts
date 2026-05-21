@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 export type Bindings = {
   patungan: KVNamespace;
   vpsai: R2Bucket;
+  ASSETS?: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -195,6 +196,15 @@ app.get("/api/profile", async (c) => {
     userAgent,
     limit,
   });
+});
+
+app.get('*', async (c) => {
+  if (c.env.ASSETS) {
+    // Cloudflare Workers statically serves files directly. 
+    // This fallback catches unmatched routes and returns the index.html for SPA routing.
+    return c.env.ASSETS.fetch(new Request(new URL('/', c.req.url), c.req.raw));
+  }
+  return c.text('Not found', 404);
 });
 
 export default app;

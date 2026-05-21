@@ -109,8 +109,8 @@ export default function App() {
         else if (data && Array.isArray(data.data)) setTrendingDramas(data.data);
         else if (data && Array.isArray(data.result)) setTrendingDramas(data.result);
         else setTrendingDramas([]);
-      } catch (err) {
-        console.error("Trending fetch error:", err);
+      } catch (err: any) {
+        console.error("Trending fetch error:", err.message || err);
         setTrendingDramas([]);
       } finally {
         setIsLoadingTrending(false);
