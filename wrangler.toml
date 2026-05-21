@@ -1,0 +1,18 @@
+name = "patungantv-hono"
+main = "src/worker.ts"
+compatibility_date = "2024-05-21"
+node_compat = true
+
+# KV Namespace bindings
+[[kv_namespaces]]
+binding = "patungan"
+id = "<BIND_KV_ID_HERE>"
+
+# R2 Bucket bindings
+[[r2_buckets]]
+binding = "vps_ai"
+bucket_name = "<BIND_BUCKET_NAME_HERE>"
+
+# To deploy, run:
+# npm install -g wrangler
+# wrangler deploy
