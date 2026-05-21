@@ -198,6 +198,30 @@ app.get("/api/profile", async (c) => {
   });
 });
 
+app.post("/api/consume-limit", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || 'Unknown';
+  let limit = 10;
+  let id = `USER-${ip.replace(/[^0-9]/g, '').substring(0,4)}`;
+  let type = 'free';
+
+  if (c.env.patungan) {
+    const data = await c.env.patungan.get(`user_${ip}`, "json") as any;
+    if (data) {
+      limit = data.limit;
+      id = data.id;
+      type = data.type || 'free';
+    }
+    
+    if (limit <= 0) {
+      return c.json({ allowed: false, limit: 0, message: "Limit reached" });
+    }
+
+    limit -= 1;
+    await c.env.patungan.put(`user_${ip}`, JSON.stringify({ id, limit, type }));
+  }
+
+  return c.json({ allowed: true, limit });
+});
 app.get('*', async (c) => {
   if (c.env.ASSETS) {
     // Cloudflare Workers statically serves files directly. 

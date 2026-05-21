@@ -58,6 +58,7 @@ export default function App() {
   const [trendingDramas, setTrendingDramas] = useState<any[]>([]);
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Fetch Providers
@@ -209,6 +210,18 @@ export default function App() {
 
   // 4. Select Episode -> Fetch Stream
   const handlePlayEpisode = async (episode: any, episodeList?: any[], providerOverride?: string) => {
+    // Check limit first
+    try {
+      const limitRes = await fetch('/api/consume-limit', { method: 'POST' });
+      const limitData = await limitRes.json();
+      if (!limitData.allowed) {
+        setShowUpgradeModal(true);
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to check limit", err);
+    }
+
     setView('player');
     setIsLoadingStream(true);
     setStreamData(null);
@@ -409,19 +422,14 @@ export default function App() {
                 <span className="w-5 h-5 bg-amber-500 rounded-[4px] flex items-center justify-center shadow-[0_0_10px_rgba(245,158,11,0.3)] text-black font-black text-xs">P</span>
                 PATUNGAN<span className="text-amber-500">TV</span>
               </h1>
-              {view !== 'home' && (
-                <button 
-                  onClick={goBack}
-                  className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-slate-400 hover:text-white transition-colors bg-[#161618] px-2 py-0.5 rounded-full border border-white/5 ml-2"
-                >
-                  <ChevronLeft className="w-3 h-3" /> Back
-                </button>
-              )}
             </div>
             <div className="flex items-center gap-3">
-               <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-500 border border-white/10 cursor-pointer overflow-hidden">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Profile" className="w-full h-full object-cover" />
-               </div>
+               <button 
+                 onClick={() => setShowUpgradeModal(true)}
+                 className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-gradient-to-tr from-amber-500 to-[#0A0A0B] border border-amber-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:scale-105 transition-transform"
+               >
+                  <Crown className="w-4 h-4 md:w-5 md:h-5 text-white" />
+               </button>
             </div>
           </header>
           
@@ -689,6 +697,65 @@ export default function App() {
           </button>
         </div>
         )}
+
+        {/* Upgrade Modal */}
+        <AnimatePresence>
+          {showUpgradeModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              onClick={() => setShowUpgradeModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-[#0A0A0B] border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+              >
+                <div className="relative h-40 bg-gradient-to-b from-amber-500/20 to-[#0A0A0B] flex items-center justify-center">
+                  <button 
+                    onClick={() => setShowUpgradeModal(false)}
+                    className="absolute top-3 right-3 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="w-20 h-20 rounded-full border-2 border-amber-500 p-1 bg-[#121214] flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                    <Crown className="w-10 h-10 text-amber-500" />
+                  </div>
+                </div>
+                
+                <div className="p-6 text-center space-y-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Limit Tontonan Habis!</h3>
+                    <p className="text-sm text-slate-400 mt-2">Anda telah mencapai batas limit tontonan gratis. Upgrade ke akun VIP untuk akses tanpa batas.</p>
+                  </div>
+                  
+                  <div className="space-y-3 pt-2">
+                    <div className="bg-[#121214] border border-white/5 rounded-xl p-4 flex items-center justify-between group hover:border-slate-500 transition-colors">
+                      <div className="text-left">
+                        <h4 className="text-white font-bold text-sm">Harian</h4>
+                        <span className="text-xs text-slate-400">Rp 5.000 / Hari</span>
+                      </div>
+                      <button className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">Beli</button>
+                    </div>
+                    
+                    <div className="bg-[#121214] border border-amber-500/30 rounded-xl p-4 flex items-center justify-between group hover:border-amber-500 transition-colors relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-amber-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">POPULER</div>
+                      <div className="text-left">
+                        <h4 className="text-amber-500 font-bold text-sm">Bulanan</h4>
+                        <span className="text-xs text-slate-400">Rp 75.000 / Bulan</span>
+                      </div>
+                      <button className="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(245,158,11,0.3)]">Beli</button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
