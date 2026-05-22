@@ -403,7 +403,21 @@ export const AdminView = () => {
                       </div>
 
                       <div className="flex justify-end pt-4">
-                        <button onClick={() => showToast('API Key disimpan')} className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-3 rounded-xl transition-colors shadow-[0_0_20px_rgba(245,158,11,0.2)] flex items-center gap-2">
+                        <button 
+                          onClick={async () => {
+                             try {
+                               await fetch('/api/admin/settings', {
+                                 method: 'POST',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ paymenku_api_key: payment.apiKey })
+                               });
+                               showToast('API Key disimpan');
+                             } catch (err) {
+                               showToast('Gagal menyimpan API Key');
+                             }
+                          }} 
+                          className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-3 rounded-xl transition-colors shadow-[0_0_20px_rgba(245,158,11,0.2)] flex items-center gap-2"
+                        >
                           <Save className="w-5 h-5" /> Simpan Key
                         </button>
                       </div>

@@ -59,6 +59,8 @@ export default function App() {
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<any>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Fetch Providers
@@ -205,6 +207,32 @@ export default function App() {
         setEpisodes([drama]);
         handlePlayEpisode(drama, [drama], provToUse);
       }
+    }
+  };
+
+  const handleBuyPackage = async (type: string, amount: number) => {
+    setIsProcessingPayment(true);
+    try {
+      const res = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amount,
+          customer_name: "VIP User",
+          customer_email: "vip@example.com"
+        })
+      });
+      const data = await res.json();
+      if (data && data.qr_string || data.qr_url || data.checkout_url) {
+        setQrCodeData(data);
+      } else {
+        alert("Gagal membuat transaksi. Mohon coba lagi.");
+      }
+    } catch (err) {
+      console.error("Payment error:", err);
+      alert("Terjadi kesalahan saat membuat kode bayar.");
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -728,29 +756,46 @@ export default function App() {
                 </div>
                 
                 <div className="p-6 text-center space-y-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Limit Tontonan Habis!</h3>
-                    <p className="text-sm text-slate-400 mt-2">Anda telah mencapai batas limit tontonan gratis. Upgrade ke akun VIP untuk akses tanpa batas.</p>
-                  </div>
-                  
-                  <div className="space-y-3 pt-2">
-                    <div className="bg-[#121214] border border-white/5 rounded-xl p-4 flex items-center justify-between group hover:border-slate-500 transition-colors">
-                      <div className="text-left">
-                        <h4 className="text-white font-bold text-sm">Harian</h4>
-                        <span className="text-xs text-slate-400">Rp 5.000 / Hari</span>
-                      </div>
-                      <button className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">Beli</button>
+                  {qrCodeData ? (
+                    <div className="space-y-4">
+                       <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-bold text-2xl">Selesaikan Pembayaran</h3>
+                       <div className="bg-white p-4 rounded-xl mx-auto w-max shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                          <img src={qrCodeData.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData.qr_string || qrCodeData.checkout_url || 'https://paymenku.com')}`} alt="QR Code" className="w-48 h-48" />
+                       </div>
+                       <p className="text-sm text-amber-200/80 font-medium">Scan QRIS menggunakan aplikasi E-Wallet atau M-Banking Anda.</p>
+                       <button onClick={() => setQrCodeData(null)} className="mt-4 w-full bg-[#121214] border border-white/10 hover:bg-[#1A1A1C] text-white font-bold py-3 rounded-xl transition-colors">Kembali</button>
                     </div>
-                    
-                    <div className="bg-[#121214] border border-amber-500/30 rounded-xl p-4 flex items-center justify-between group hover:border-amber-500 transition-colors relative overflow-hidden">
-                      <div className="absolute top-0 right-0 bg-amber-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">POPULER</div>
-                      <div className="text-left">
-                        <h4 className="text-amber-500 font-bold text-sm">Bulanan</h4>
-                        <span className="text-xs text-slate-400">Rp 75.000 / Bulan</span>
+                  ) : (
+                    <>
+                      <div>
+                        <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-extrabold text-2xl">Upgrade Premium</h3>
+                        <p className="text-sm text-slate-400 mt-2 font-medium">Dapatkan akses tak terbatas ke semua konten dengan kualitas terbaik.</p>
                       </div>
-                      <button className="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(245,158,11,0.3)]">Beli</button>
-                    </div>
-                  </div>
+                      
+                      <div className="space-y-3 pt-2">
+                        <div className="bg-[#121214] border border-amber-500/20 rounded-xl p-4 flex items-center justify-between group hover:border-amber-500/50 transition-colors">
+                          <div className="text-left">
+                            <h4 className="text-white font-bold text-base">Harian</h4>
+                            <span className="text-xs text-amber-500/80 font-medium tracking-wide">Rp 5.000 / Hari</span>
+                          </div>
+                          <button onClick={() => handleBuyPackage('harian', 5000)} disabled={isProcessingPayment} className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-colors border border-white/10 disabled:opacity-50">
+                            {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Pilih'}
+                          </button>
+                        </div>
+                        
+                        <div className="bg-gradient-to-r from-[#1A1500] to-[#0D0B00] border border-amber-500/50 rounded-xl p-5 flex items-center justify-between group hover:border-amber-400 transition-colors relative overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)] mt-4">
+                          <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-amber-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl tracking-widest shadow-md">POPULER</div>
+                          <div className="text-left mt-1">
+                            <h4 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-bold text-lg">Bulanan</h4>
+                            <span className="text-xs text-amber-200/60 font-medium tracking-wide">Rp 75.000 / Bulan</span>
+                          </div>
+                          <button onClick={() => handleBuyPackage('bulanan', 75000)} disabled={isProcessingPayment} className="bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-500 text-black text-xs font-extrabold px-6 py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:shadow-[0_0_25px_rgba(245,158,11,0.6)] hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center min-w-[100px]">
+                             {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Beli'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             </motion.div>

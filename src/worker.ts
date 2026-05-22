@@ -222,6 +222,50 @@ app.post("/api/consume-limit", async (c) => {
 
   return c.json({ allowed: true, limit });
 });
+app.post("/api/create-payment", async (c) => {
+  try {
+    const body = await c.req.json();
+    let apiKey = "DUMMY_API_KEY"; // Default
+    if (c.env.patungan) {
+      const storedKey = await c.env.patungan.get("paymenku_api_key");
+      if (storedKey) apiKey = storedKey;
+    }
+
+    const payload = {
+      reference_id: `INV-${Date.now()}`,
+      amount: body.amount || 100000,
+      customer_name: body.customer_name || "Guest",
+      customer_email: body.customer_email || "guest@example.com",
+      channel_code: "qris",
+      return_url: "https://patungantv.com/payment-done"
+    };
+
+    const response = await fetch("https://paymenku.com/api/v1/transaction/create", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    return c.json(data);
+  } catch (error: any) {
+    return c.json({ error: error.message || "Failed to create payment" }, 500);
+  }
+});
+
+app.post("/api/admin/settings", async (c) => {
+  const body = await c.req.json();
+  if (c.env.patungan) {
+    if (body.paymenku_api_key) {
+      await c.env.patungan.put("paymenku_api_key", body.paymenku_api_key);
+    }
+  }
+  return c.json({ success: true });
+});
+
 app.get('*', async (c) => {
   if (c.env.ASSETS) {
     // Cloudflare Workers statically serves files directly. 
