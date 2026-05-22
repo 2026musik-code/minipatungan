@@ -168,7 +168,9 @@ export default function App() {
     setSelectedDrama(drama);
     setView('player'); // Go directly to player view
     setIsLoadingEpisodes(true);
+    setIsLoadingStream(true); // Show loading overlay immediately
     setEpisodes([]);
+    setStreamData(null);
     
     // Save to history
     const dramaToSave = { ...drama, _sourceProvider: provToUse };
@@ -263,6 +265,7 @@ export default function App() {
       const limitData: any = await limitRes.json();
       if (!limitData.allowed) {
         setShowUpgradeModal(true);
+        setIsLoadingStream(false);
         return;
       }
     } catch (err) {
