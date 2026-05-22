@@ -231,6 +231,16 @@ app.post("/api/create-payment", async (c) => {
       if (storedKey) apiKey = storedKey;
     }
 
+    if (apiKey === "DUMMY_API_KEY") {
+      return c.json({
+        success: true,
+        data: {
+          qr_string: "00020101021226670014ID.CO.QRIS.WWW0118936009153023030306020953033605802ID5919Mock Paymenku Store6013Jakarta Pusat6105101106304CA17",
+          qr_url: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020101021226670014ID.CO.QRIS.WWW0118936009153023030306020953033605802ID5919Mock Paymenku Store6013Jakarta Pusat6105101106304CA17"
+        }
+      });
+    }
+
     const payload = {
       reference_id: `INV-${Date.now()}`,
       amount: body.amount || 100000,

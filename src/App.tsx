@@ -222,7 +222,7 @@ export default function App() {
           customer_email: "vip@example.com"
         })
       });
-      const data = await res.json();
+      const data: any = await res.json();
       const paymentData = data.data || data; // Handle nested 'data' object commonly used by payment gateways
 
       if (paymentData && (paymentData.qr_string || paymentData.qr_url || paymentData.checkout_url || paymentData.payment_url)) {
@@ -243,7 +243,7 @@ export default function App() {
     // Check limit first
     try {
       const limitRes = await fetch('/api/consume-limit', { method: 'POST' });
-      const limitData = await limitRes.json();
+      const limitData: any = await limitRes.json();
       if (!limitData.allowed) {
         setShowUpgradeModal(true);
         return;
