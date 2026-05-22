@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Shield, Info, CheckCircle, Zap, MonitorSmartphone, Clock } from 'lucide-react';
+import { getUserId } from '../userId';
 
 export const ProfileView = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -9,7 +10,9 @@ export const ProfileView = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/profile');
+        const res = await fetch('/api/profile', {
+          headers: { 'X-User-ID': getUserId() }
+        });
         const data = await res.json();
         setProfile(data);
       } catch (err) {
@@ -72,14 +75,22 @@ export const ProfileView = () => {
           <div className="bg-[#121214]/80 backdrop-blur-md rounded-2xl border border-white/5 p-5 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <span className="text-slate-500 text-[10px] uppercase tracking-wider font-bold mb-2">Limit Tontonan</span>
-            <div className="text-4xl font-black text-white tracking-tighter">{profile?.limit || 0}</div>
+            {profile?.limit >= 999999 ? (
+               <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tighter mt-1 mb-1">TANPA BATAS</div>
+            ) : (
+               <div className="text-4xl font-black text-white tracking-tighter">{profile?.limit || 0}</div>
+            )}
             <span className="text-amber-500 text-[10px] font-bold mt-1 uppercase">Tayangan / Hari</span>
           </div>
           <div className="bg-[#121214]/80 backdrop-blur-md rounded-2xl border border-white/5 p-5 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <span className="text-slate-500 text-[10px] uppercase tracking-wider font-bold mb-2">Status Iklan</span>
-            <div className="text-xl font-bold text-white mt-1 mb-2">Aktif</div>
-            <span className="text-slate-400 text-[10px] font-medium mt-1">Upgrade untuk hapus</span>
+            {profile?.type === 'VIP' ? (
+              <div className="text-xl font-bold text-amber-500 mt-1 mb-2">Bebas Iklan</div>
+            ) : (
+              <div className="text-xl font-bold text-white mt-1 mb-2">Aktif</div>
+            )}
+            <span className="text-slate-400 text-[10px] font-medium mt-1">{profile?.type === 'VIP' ? 'Premium Member' : 'Upgrade untuk hapus'}</span>
           </div>
         </div>
 

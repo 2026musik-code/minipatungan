@@ -174,19 +174,22 @@ app.use("*", async (c, next) => {
 
 app.get("/api/profile", async (c) => {
   const ip = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || 'Unknown';
+  let userId = c.req.header("X-User-ID") || ip;
   const userAgent = c.req.header("User-Agent") || 'Unknown';
   
   // Try to get from KV
   let limit = 10; // default free limit
-  let id = `USER-${ip.replace(/[^0-9]/g, '').substring(0,4)}`;
+  let id = userId.startsWith('UID-') ? userId : `USER-${ip.replace(/[^0-9]/g, '').substring(0,4)}`;
+  let type = 'free';
   
   if (c.env.patungan) {
-    const data = await c.env.patungan.get(`user_${ip}`, "json") as any;
+    const data = await c.env.patungan.get(`user_${userId}`, "json") as any;
     if (data) {
       limit = data.limit;
-      id = data.id;
+      id = data.id || id;
+      type = data.type || 'free';
     } else {
-      await c.env.patungan.put(`user_${ip}`, JSON.stringify({ id, limit, type: 'free' }));
+      await c.env.patungan.put(`user_${userId}`, JSON.stringify({ id, limit, type }));
     }
   }
 
@@ -195,59 +198,61 @@ app.get("/api/profile", async (c) => {
     ip,
     userAgent,
     limit,
+    type
   });
 });
 
 app.post("/api/consume-limit", async (c) => {
   const ip = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || 'Unknown';
+  let userId = c.req.header("X-User-ID") || ip;
+  
   let limit = 10;
-  let id = `USER-${ip.replace(/[^0-9]/g, '').substring(0,4)}`;
+  let id = userId.startsWith('UID-') ? userId : `USER-${ip.replace(/[^0-9]/g, '').substring(0,4)}`;
   let type = 'free';
 
   if (c.env.patungan) {
-    const data = await c.env.patungan.get(`user_${ip}`, "json") as any;
+    const data = await c.env.patungan.get(`user_${userId}`, "json") as any;
     if (data) {
       limit = data.limit;
-      id = data.id;
+      id = data.id || id;
       type = data.type || 'free';
     }
     
-    if (limit <= 0) {
+    // Allow unlimited if limit string is 999999 or VIP
+    if (limit <= 0 && type !== 'VIP') {
       return c.json({ allowed: false, limit: 0, message: "Limit reached" });
     }
 
-    limit -= 1;
-    await c.env.patungan.put(`user_${ip}`, JSON.stringify({ id, limit, type }));
+    if (type !== 'VIP') {
+      limit -= 1;
+      await c.env.patungan.put(`user_${userId}`, JSON.stringify({ id, limit, type }));
+    }
   }
 
-  return c.json({ allowed: true, limit });
+  return c.json({ allowed: true, limit, type });
 });
 app.post("/api/create-payment", async (c) => {
   try {
     const body = await c.req.json();
-    let apiKey = "DUMMY_API_KEY"; // Default
+    const ip = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || 'Unknown';
+    const userId = c.req.header("X-User-ID") || ip;
+    
+    let apiKey = "sk_test_seryG3U0IrU56SzFIczQuZ4ycA5iWJ6H"; // Default
     if (c.env.patungan) {
       const storedKey = await c.env.patungan.get("paymenku_api_key");
       if (storedKey) apiKey = storedKey;
     }
 
-    if (apiKey === "DUMMY_API_KEY") {
-      return c.json({
-        success: true,
-        data: {
-          qr_string: "00020101021226670014ID.CO.QRIS.WWW0118936009153023030306020953033605802ID5919Mock Paymenku Store6013Jakarta Pusat6105101106304CA17",
-          qr_url: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020101021226670014ID.CO.QRIS.WWW0118936009153023030306020953033605802ID5919Mock Paymenku Store6013Jakarta Pusat6105101106304CA17"
-        }
-      });
-    }
+    const userIdStr = userId.replace(/[^a-zA-Z0-9-]/g, '_');
+    const invId = `INV-${Date.now()}-${userIdStr}`;
 
     const payload = {
-      reference_id: `INV-${Date.now()}`,
+      reference_id: invId,
       amount: body.amount || 100000,
       customer_name: body.customer_name || "Guest",
       customer_email: body.customer_email || "guest@example.com",
       channel_code: "qris",
-      return_url: "https://patungantv.com/payment-done"
+      return_url: "https://patungantv.com/payment-done" // Ganti dengan domain asli
     };
 
     const response = await fetch("https://paymenku.com/api/v1/transaction/create", {
@@ -264,6 +269,33 @@ app.post("/api/create-payment", async (c) => {
   } catch (error: any) {
     return c.json({ error: error.message || "Failed to create payment" }, 500);
   }
+});
+
+app.post("/api/payment-callback", async (c) => {
+  try {
+    const body = await c.req.json();
+    
+    // Webhook Paymenku mengirimkan status
+    // Cek dokumentasi Paymenku untuk list status sukses. Umumnya SUCCESS, SETTLED, PAID
+    if (body.status === 'SUCCESS' || body.status === 'SETTLED' || body.transaction_status === 'settlement' || body.status === 'PAID') {
+       const ref_id = body.reference_id || "";
+       const parts = ref_id.split('-');
+       if (parts.length >= 3) {
+         const userIdStr = parts.slice(2).join('-');
+         
+         if (c.env.patungan) {
+           let data = await c.env.patungan.get(`user_${userIdStr}`, "json") as any;
+           if (!data) data = { id: userIdStr.startsWith('UID-') ? userIdStr : `USER-${userIdStr.substring(0,4)}` };
+           
+           data.limit = 999999; // Unlimited
+           data.type = "VIP";
+           
+           await c.env.patungan.put(`user_${userIdStr}`, JSON.stringify(data));
+         }
+       }
+    }
+  } catch(e) {}
+  return c.json({ received: true });
 });
 
 app.post("/api/admin/settings", async (c) => {

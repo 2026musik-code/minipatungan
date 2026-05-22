@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PlayerView } from './components/PlayerView';
 import { ProfileView } from './components/ProfileView';
 import { AdminView } from './components/AdminView';
+import { getUserId } from './userId';
 
 const getProviderIcon = (id: string, className?: string) => {
   const seed = encodeURIComponent(id.toLowerCase());
@@ -215,7 +216,10 @@ export default function App() {
     try {
       const res = await fetch('/api/create-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-ID': getUserId()
+        },
         body: JSON.stringify({
           amount: amount,
           customer_name: "VIP User",
@@ -226,14 +230,19 @@ export default function App() {
       const paymentData = data.data || data; // Handle nested 'data' object commonly used by payment gateways
       const paymentInfo = paymentData.payment_info || {};
 
-      const qrString = paymentInfo.qr_string || paymentData.qr_string;
-      const qrUrl = paymentInfo.qr_url || paymentData.qr_url;
       const checkoutUrl = paymentData.pay_url || paymentData.checkout_url || paymentData.payment_url;
 
-      if (qrString || qrUrl || checkoutUrl) {
-        setQrCodeData({ qr_string: qrString, qr_url: qrUrl, checkout_url: checkoutUrl });
+      if (checkoutUrl) {
+         window.location.href = checkoutUrl;
       } else {
-        alert("Gagal membuat transaksi: " + (data.message || data.error || JSON.stringify(data)));
+        const qrString = paymentInfo.qr_string || paymentData.qr_string;
+        const qrUrl = paymentInfo.qr_url || paymentData.qr_url;
+
+        if (qrString || qrUrl) {
+          setQrCodeData({ qr_string: qrString, qr_url: qrUrl, checkout_url: checkoutUrl });
+        } else {
+          alert("Gagal membuat transaksi: " + (data.message || data.error || JSON.stringify(data)));
+        }
       }
     } catch (err) {
       console.error("Payment error:", err);
@@ -247,7 +256,10 @@ export default function App() {
   const handlePlayEpisode = async (episode: any, episodeList?: any[], providerOverride?: string) => {
     // Check limit first
     try {
-      const limitRes = await fetch('/api/consume-limit', { method: 'POST' });
+      const limitRes = await fetch('/api/consume-limit', { 
+        method: 'POST',
+        headers: { 'X-User-ID': getUserId() }
+      });
       const limitData: any = await limitRes.json();
       if (!limitData.allowed) {
         setShowUpgradeModal(true);

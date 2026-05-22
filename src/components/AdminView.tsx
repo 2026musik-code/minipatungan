@@ -19,7 +19,7 @@ export const AdminView = () => {
   const [pricing, setPricing] = useState({ daily: 5000, weekly: 25000, monthly: 75000 });
   const [popup, setPopup] = useState({ text: 'Limit harian Anda telah habis. Upgrade ke VIP untuk akses tanpa batas dan tanpa iklan!', image: '', wa: '6281234567890', tg: 'patungantv_admin' });
   const [security, setSecurity] = useState({ oldPass: '', newPass: '', confirmPass: '' });
-  const [payment, setPayment] = useState({ apiKey: 'sk_test_123456789' });
+  const [payment, setPayment] = useState({ apiKey: 'sk_test_seryG3U0IrU56SzFIczQuZ4ycA5iWJ6H' });
   const [toast, setToast] = useState('');
 
   const showToast = (msg: string) => {
