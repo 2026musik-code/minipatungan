@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import { Search, Play, Tv, ChevronLeft, X, LayoutGrid, Crown, Loader2, Sparkles, Popcorn, List, Film, Clapperboard, Video, MonitorPlay, PlayCircle } from 'lucide-react';
+import { Search, Play, Tv, ChevronLeft, X, LayoutGrid, Crown, Loader2, Sparkles, Popcorn, List, Film, Clapperboard, Video, MonitorPlay, PlayCircle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PlayerView } from './components/PlayerView';
 import { ProfileView } from './components/ProfileView';
@@ -223,14 +223,16 @@ export default function App() {
         })
       });
       const data = await res.json();
-      if (data && data.qr_string || data.qr_url || data.checkout_url) {
-        setQrCodeData(data);
+      const paymentData = data.data || data; // Handle nested 'data' object commonly used by payment gateways
+
+      if (paymentData && (paymentData.qr_string || paymentData.qr_url || paymentData.checkout_url || paymentData.payment_url)) {
+        setQrCodeData(paymentData);
       } else {
-        alert("Gagal membuat transaksi. Mohon coba lagi.");
+        alert("Gagal membuat transaksi: " + (data.message || data.error || JSON.stringify(data)));
       }
     } catch (err) {
       console.error("Payment error:", err);
-      alert("Terjadi kesalahan saat membuat kode bayar.");
+      alert("Terjadi kesalahan koneksi saat membuat kode bayar.");
     } finally {
       setIsProcessingPayment(false);
     }
@@ -726,75 +728,75 @@ export default function App() {
         </div>
         )}
 
-        {/* Upgrade Modal */}
+  {/* Upgrade Modal */}
         <AnimatePresence>
           {showUpgradeModal && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
               onClick={() => setShowUpgradeModal(false)}
             >
               <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-[#0A0A0B] border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                className="bg-gradient-to-b from-[#1a1400] to-[#0A0A0B] border border-amber-500/20 rounded-3xl w-full max-w-sm overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.1)]"
               >
-                <div className="relative h-40 bg-gradient-to-b from-amber-500/20 to-[#0A0A0B] flex items-center justify-center">
+                <div className="relative pt-10 pb-6 px-6 text-center">
                   <button 
                     onClick={() => setShowUpgradeModal(false)}
-                    className="absolute top-3 right-3 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors"
+                    className="absolute top-4 right-4 p-2 bg-black/50 text-slate-400 hover:text-white rounded-full hover:bg-black/80 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  <div className="w-20 h-20 rounded-full border-2 border-amber-500 p-1 bg-[#121214] flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-                    <Crown className="w-10 h-10 text-amber-500" />
+                  <div className="mx-auto w-24 h-24 rounded-full border border-amber-500/30 p-2 bg-gradient-to-tr from-amber-500/10 to-transparent flex items-center justify-center shadow-[inset_0_0_20px_rgba(245,158,11,0.2)] mb-4 relative">
+                    <div className="absolute inset-0 bg-amber-500/10 rounded-full animate-pulse"></div>
+                    <Crown className="w-12 h-12 text-amber-500 relative z-10 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
                   </div>
+                  <h3 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-600 drop-shadow-sm font-sans tracking-tight">VIP Premium</h3>
+                  <p className="text-sm text-amber-200/60 mt-2 font-medium">Buka limit tanpa batas, nikmati dengan kualitas terbaik.</p>
                 </div>
                 
-                <div className="p-6 text-center space-y-4">
+                <div className="px-6 pb-8 space-y-4">
                   {qrCodeData ? (
-                    <div className="space-y-4">
-                       <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-bold text-2xl">Selesaikan Pembayaran</h3>
-                       <div className="bg-white p-4 rounded-xl mx-auto w-max shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                          <img src={qrCodeData.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData.qr_string || qrCodeData.checkout_url || 'https://paymenku.com')}`} alt="QR Code" className="w-48 h-48" />
+                    <div className="space-y-5 text-center mt-2">
+                       <div className="bg-white p-5 rounded-2xl mx-auto w-max shadow-[0_0_40px_rgba(255,255,255,0.15)] ring-4 ring-amber-500/20">
+                          <img src={qrCodeData.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrCodeData.qr_string || qrCodeData.checkout_url || 'https://paymenku.com')}`} alt="QR Code" className="w-48 h-48 sm:w-56 sm:h-56 object-contain" />
                        </div>
-                       <p className="text-sm text-amber-200/80 font-medium">Scan QRIS menggunakan aplikasi E-Wallet atau M-Banking Anda.</p>
-                       <button onClick={() => setQrCodeData(null)} className="mt-4 w-full bg-[#121214] border border-white/10 hover:bg-[#1A1A1C] text-white font-bold py-3 rounded-xl transition-colors">Kembali</button>
+                       <p className="text-sm text-slate-300 font-medium">Silakan Scan QRIS ini dengan<br/>E-Wallet atau M-Banking Anda.</p>
+                       <button onClick={() => setQrCodeData(null)} className="w-full bg-[#121214] border border-white/10 hover:border-amber-500/50 hover:bg-[#1A1A1C] text-white font-bold py-3.5 rounded-xl transition-colors">Batalkan / Kembali</button>
                     </div>
                   ) : (
-                    <>
-                      <div>
-                        <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-extrabold text-2xl">Upgrade Premium</h3>
-                        <p className="text-sm text-slate-400 mt-2 font-medium">Dapatkan akses tak terbatas ke semua konten dengan kualitas terbaik.</p>
-                      </div>
-                      
-                      <div className="space-y-3 pt-2">
-                        <div className="bg-[#121214] border border-amber-500/20 rounded-xl p-4 flex items-center justify-between group hover:border-amber-500/50 transition-colors">
-                          <div className="text-left">
-                            <h4 className="text-white font-bold text-base">Harian</h4>
-                            <span className="text-xs text-amber-500/80 font-medium tracking-wide">Rp 5.000 / Hari</span>
-                          </div>
-                          <button onClick={() => handleBuyPackage('harian', 5000)} disabled={isProcessingPayment} className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-colors border border-white/10 disabled:opacity-50">
-                            {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Pilih'}
-                          </button>
+                    <div className="space-y-4">
+                      {/* VIP AKSES */}
+                      <div className="bg-gradient-to-tr from-amber-500/20 to-amber-600/5 border border-amber-500/50 rounded-3xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(245,158,11,0.15)] text-left hover:shadow-[0_0_50px_rgba(245,158,11,0.25)] transition-all">
+                        <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-[10px] font-black px-4 py-1.5 rounded-bl-2xl tracking-widest shadow-md uppercase">Eksklusif</div>
+                        
+                        <h4 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-extrabold text-2xl drop-shadow-sm mb-1 mt-1">Akses VIP</h4>
+                        <div className="flex items-baseline gap-2 mb-6">
+                           <span className="text-3xl font-black text-white">Rp 5.000</span>
+                           <span className="text-sm font-medium text-amber-200/60">/ 30 Hari</span>
                         </div>
                         
-                        <div className="bg-gradient-to-r from-[#1A1500] to-[#0D0B00] border border-amber-500/50 rounded-xl p-5 flex items-center justify-between group hover:border-amber-400 transition-colors relative overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)] mt-4">
-                          <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-amber-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl tracking-widest shadow-md">POPULER</div>
-                          <div className="text-left mt-1">
-                            <h4 className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 font-bold text-lg">Bulanan</h4>
-                            <span className="text-xs text-amber-200/60 font-medium tracking-wide">Rp 75.000 / Bulan</span>
-                          </div>
-                          <button onClick={() => handleBuyPackage('bulanan', 75000)} disabled={isProcessingPayment} className="bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-500 text-black text-xs font-extrabold px-6 py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:shadow-[0_0_25px_rgba(245,158,11,0.6)] hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center min-w-[100px]">
-                             {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Beli'}
-                          </button>
+                        <div className="space-y-3 mb-8 bg-black/20 rounded-xl p-4 border border-white/5">
+                           <div className="flex items-center gap-3 text-sm text-slate-300">
+                              <div className="bg-amber-500/20 p-1 rounded-full"><CheckCircle className="w-4 h-4 text-amber-500" /></div>
+                              <span>Jenis Akun: <strong className="text-amber-400">VIP Premium</strong></span>
+                           </div>
+                           <div className="flex items-center gap-3 text-sm text-slate-300">
+                              <div className="bg-amber-500/20 p-1 rounded-full"><CheckCircle className="w-4 h-4 text-amber-500" /></div>
+                              <span>Limit: <strong className="text-amber-400">Tanpa Batas</strong></span>
+                           </div>
                         </div>
+
+                        <button onClick={() => handleBuyPackage('vip_30', 5000)} disabled={isProcessingPayment} className="w-full bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-500 text-black text-sm font-extrabold px-6 py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.4)] hover:shadow-[0_6px_25px_rgba(245,158,11,0.6)] hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none flex items-center justify-center gap-2">
+                           {isProcessingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Beli Akses VIP <Crown className="w-4 h-4" /></>}
+                        </button>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               </motion.div>
