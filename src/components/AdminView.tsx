@@ -1,20 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, Users, Crown, Settings, CreditCard, MessageSquare, Image as ImageIcon, Save, Key, Lock, Phone, Send, Trash2, Check, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const AdminView = () => {
   const [activeTab, setActiveTab] = useState<'users-free' | 'users-vip' | 'pricing' | 'popup' | 'security' | 'payment'>('users-free');
 
-  // Dummy state
-  const [freeUsers, setFreeUsers] = useState([
-    { id: 'USER-1021', ip: '192.168.1.1', limit: 100 },
-    { id: 'USER-3498', ip: '114.120.45.2', limit: 50 },
-  ]);
-
-  const [vipUsers, setVipUsers] = useState([
-    { id: 'USER-9921', ip: '10.0.0.1', limit: 5000, type: 'Bulanan', exp: '2026-06-21' },
-    { id: 'USER-8812', ip: '10.0.0.9', limit: 1200, type: 'Mingguan', exp: '2026-05-28' },
-  ]);
+  const [freeUsers, setFreeUsers] = useState<any[]>([]);
+  const [vipUsers, setVipUsers] = useState<any[]>([]);
 
   const [pricing, setPricing] = useState({ daily: 5000, weekly: 25000, monthly: 75000 });
   const [popup, setPopup] = useState({ text: 'Limit harian Anda telah habis. Upgrade ke VIP untuk akses tanpa batas dan tanpa iklan!', image: '', wa: '6281234567890', tg: 'patungantv_admin' });
@@ -22,24 +14,61 @@ export const AdminView = () => {
   const [payment, setPayment] = useState({ apiKey: 'sk_test_seryG3U0IrU56SzFIczQuZ4ycA5iWJ6H' });
   const [toast, setToast] = useState('');
 
+  useEffect(() => {
+     fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+     try {
+       const res = await fetch('/api/admin/users');
+       const data = await res.json();
+       setFreeUsers(data.free || []);
+       setVipUsers(data.vip || []);
+     } catch (e) {
+       console.error("Failed to fetch users", e);
+     }
+  };
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleUpdateFreeLimit = (id: string, limit: number) => {
-    setFreeUsers(freeUsers.map(u => u.id === id ? { ...u, limit } : u));
-    showToast(`Limit ${id} diperbarui`);
+  const handleUpdateFreeLimit = async (key: string, id: string, limit: number) => {
+    try {
+      await fetch('/api/admin/users', { 
+         method: 'POST', 
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ key, action: 'update', data: { limit } })
+      });
+      setFreeUsers(freeUsers.map(u => u.key === key ? { ...u, limit } : u));
+      showToast(`Limit ${id} diperbarui`);
+    } catch(e) { showToast('Gagal update limit'); }
   };
 
-  const handleUpdateVipLimit = (id: string, limit: number) => {
-    setVipUsers(vipUsers.map(u => u.id === id ? { ...u, limit } : u));
-    showToast(`Limit VIP ${id} diperbarui`);
+  const handleUpdateVipLimit = async (key: string, id: string, limit: number) => {
+    try {
+      await fetch('/api/admin/users', { 
+         method: 'POST', 
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ key, action: 'update', data: { limit } })
+      });
+      setVipUsers(vipUsers.map(u => u.key === key ? { ...u, limit } : u));
+      showToast(`Limit VIP ${id} diperbarui`);
+    } catch(e) { showToast('Gagal update limit VIP'); }
   };
 
-  const handleDeleteVip = (id: string) => {
-    setVipUsers(vipUsers.filter(u => u.id !== id));
-    showToast(`User ${id} dihapus`);
+  const handleDeleteVip = async (key: string, id: string) => {
+    try {
+      if (!confirm(`Hapus VIP status untuk ${id}?`)) return;
+      await fetch('/api/admin/users', { 
+         method: 'POST', 
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ key, action: 'update', data: { type: 'free', limit: 10 } }) // Demote instead of delete
+      });
+      fetchUsers();
+      showToast(`User ${id} kembali ke Free`);
+    } catch(e) { showToast('Gagal menghapus status VIP'); }
   };
 
   return (
@@ -153,7 +182,7 @@ export const AdminView = () => {
                                type="number" 
                                defaultValue={user.limit}
                                className="w-full md:w-28 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-center md:text-left focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all font-mono text-white"
-                               onBlur={(e) => handleUpdateFreeLimit(user.id, parseInt(e.target.value) || 0)}
+                               onBlur={(e) => handleUpdateFreeLimit(user.key, user.id, parseInt(e.target.value) || 0)}
                              />
                            </div>
                            <button 
@@ -202,7 +231,7 @@ export const AdminView = () => {
                                type="number" 
                                defaultValue={user.limit}
                                className="w-full md:w-28 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-center md:text-left focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all font-mono text-white"
-                               onBlur={(e) => handleUpdateVipLimit(user.id, parseInt(e.target.value) || 0)}
+                               onBlur={(e) => handleUpdateVipLimit(user.key, user.id, parseInt(e.target.value) || 0)}
                              />
                            </div>
                            <div className="flex items-center gap-2 shrink-0">
@@ -213,7 +242,7 @@ export const AdminView = () => {
                                <Save className="w-5 h-5" />
                              </button>
                              <button 
-                                onClick={() => handleDeleteVip(user.id)}
+                                onClick={() => handleDeleteVip(user.key, user.id)}
                                 className="bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 p-2.5 rounded-lg border border-red-500/30 transition-all flex items-center justify-center shadow-sm"
                              >
                                <Trash2 className="w-5 h-5" />

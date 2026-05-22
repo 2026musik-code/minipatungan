@@ -256,6 +256,9 @@ export default function App() {
 
   // 4. Select Episode -> Fetch Stream
   const handlePlayEpisode = async (episode: any, episodeList?: any[], providerOverride?: string) => {
+    setView('player');
+    setIsLoadingStream(true);
+    
     // Check limit first
     try {
       const limitRes = await fetch('/api/consume-limit', { 
@@ -272,8 +275,6 @@ export default function App() {
       console.error("Failed to check limit", err);
     }
 
-    setView('player');
-    setIsLoadingStream(true);
     setStreamData(null);
     setShowPlayerEpisodeList(false);
     setShowSubtitleList(false);

@@ -298,6 +298,53 @@ app.post("/api/payment-callback", async (c) => {
   return c.json({ received: true });
 });
 
+app.get("/api/admin/users", async (c) => {
+  if (!c.env.patungan) return c.json({ free: [], vip: [] });
+  
+  try {
+    const entries = await c.env.patungan.list({ prefix: "user_" });
+    const users = await Promise.all(entries.keys.map(async (k: any) => {
+      try {
+        const keyName = k.name;
+        const dataStr = await c.env.patungan.get(keyName);
+        if (!dataStr) return null;
+        const data = JSON.parse(dataStr);
+        return { ...data, key: keyName, ip: keyName.replace('user_', '') };
+      } catch(e) { return null; }
+    }));
+    
+    const validUsers = users.filter((u: any) => u !== null);
+    const free = validUsers.filter((u: any) => u.type !== 'VIP');
+    const vip = validUsers.filter((u: any) => u.type === 'VIP');
+    
+    // Sort so users with 0 limit appear first or sort by id
+    free.sort((a, b) => a.limit - b.limit);
+    
+    return c.json({ free, vip });
+  } catch (e) {
+    return c.json({ free: [], vip: [] });
+  }
+});
+
+app.post("/api/admin/users", async (c) => {
+  if (!c.env.patungan) return c.json({ success: false });
+  try {
+    const body = await c.req.json();
+    const { key, action, data } = body;
+    
+    if (action === 'update' && key) {
+       const oldStr = await c.env.patungan.get(key);
+       const oldData = oldStr ? JSON.parse(oldStr) : {};
+       await c.env.patungan.put(key, JSON.stringify({ ...oldData, ...data }));
+    } else if (action === 'delete' && key) {
+       await c.env.patungan.delete(key);
+    }
+    return c.json({ success: true });
+  } catch(e) {
+    return c.json({ success: false });
+  }
+});
+
 app.post("/api/admin/settings", async (c) => {
   const body = await c.req.json();
   if (c.env.patungan) {
