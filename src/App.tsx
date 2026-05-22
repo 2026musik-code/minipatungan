@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent, useRef } from 'react';
 import { Search, Play, Tv, ChevronLeft, X, LayoutGrid, Crown, Loader2, Sparkles, Popcorn, List, Film, Clapperboard, Video, MonitorPlay, PlayCircle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PlayerView } from './components/PlayerView';
+import { NetshortPlayer } from './components/NetshortPlayer';
 import { ProfileView } from './components/ProfileView';
 import { AdminView } from './components/AdminView';
 import { getUserId } from './userId';
@@ -293,8 +294,12 @@ export default function App() {
     const epId = episode.videoFakeId || episode.fakeId || episode.id || episode.link || episode.url || episode.chapter_id || episode.chapterId;
     const streamProvider = providerOverride || selectedProvider;
     
-    // If we have a direct video URL and no proper episode ID to fetch stream, use it directly
-    if (!epId && (episode.videoUrl || episode.originalUrl || typeof episode === 'string')) {
+    // Check if the episode itself already contains a valid direct URL
+    const rawEpUrl = getRawStreamUrl(episode);
+    const isDirect = typeof epId === 'string' && epId.startsWith('http');
+    
+    // If we clearly don't have a normal ID, or have a direct URL and missing epId
+    if (isDirect || (!epId && (episode.videoUrl || episode.originalUrl || typeof episode === 'string'))) {
       setStreamData(episode);
       setIsLoadingStream(false);
       return;
@@ -303,9 +308,20 @@ export default function App() {
     try {
       const res = await fetch(`/api/stream/${streamProvider}?id=${encodeURIComponent(epId)}`);
       const data: any = await res.json();
-      setStreamData(data);
+      
+      // Check if the fetched streamData actually contains a stream
+      const fetchedStreamUrl = getRawStreamUrl(data);
+      if (!fetchedStreamUrl && rawEpUrl) {
+         console.log("Stream API returned empty, falling back to episode raw URL:", rawEpUrl);
+         setStreamData(episode);
+      } else {
+         setStreamData(data);
+      }
     } catch (err) {
       console.error("Stream error:", err);
+      if (rawEpUrl) {
+         setStreamData(episode);
+      }
     } finally {
       setIsLoadingStream(false);
     }
@@ -699,28 +715,43 @@ export default function App() {
             )}
 
             {view === 'player' && (
-              <PlayerView
-                isLoadingStream={isLoadingStream}
-                streamData={streamData}
-                selectedDrama={selectedDrama}
-                episodes={episodes}
-                currentEpisodeIndex={currentEpisodeIndex}
-                showPlayerControls={showPlayerControls}
-                showPlayerEpisodeList={showPlayerEpisodeList}
-                setShowPlayerEpisodeList={setShowPlayerEpisodeList}
-                showSubtitleList={showSubtitleList}
-                setShowSubtitleList={setShowSubtitleList}
-                resetControlsTimer={resetControlsTimer}
-                handleTouchStart={handleTouchStart}
-                handleTouchEnd={handleTouchEnd}
-                handleWheel={handleWheel}
-                handleNextEpisode={handleNextEpisode}
-                setView={setView}
-                handlePlayEpisode={handlePlayEpisode}
-                getTitle={getTitle}
-                getStreamUrl={getStreamUrl}
-                isVideoFile={isVideoFile}
-              />
+              selectedProvider === 'netshort' ? (
+                <NetshortPlayer 
+                  isLoadingStream={isLoadingStream}
+                  streamData={streamData}
+                  episodes={episodes}
+                  currentEpisodeIndex={currentEpisodeIndex}
+                  handleNextEpisode={handleNextEpisode}
+                  handlePrevEpisode={handlePrevEpisode}
+                  setView={setView}
+                  handlePlayEpisode={handlePlayEpisode}
+                  getTitle={getTitle}
+                  getStreamUrl={getStreamUrl}
+                />
+              ) : (
+                <PlayerView
+                  isLoadingStream={isLoadingStream}
+                  streamData={streamData}
+                  selectedDrama={selectedDrama}
+                  episodes={episodes}
+                  currentEpisodeIndex={currentEpisodeIndex}
+                  showPlayerControls={showPlayerControls}
+                  showPlayerEpisodeList={showPlayerEpisodeList}
+                  setShowPlayerEpisodeList={setShowPlayerEpisodeList}
+                  showSubtitleList={showSubtitleList}
+                  setShowSubtitleList={setShowSubtitleList}
+                  resetControlsTimer={resetControlsTimer}
+                  handleTouchStart={handleTouchStart}
+                  handleTouchEnd={handleTouchEnd}
+                  handleWheel={handleWheel}
+                  handleNextEpisode={handleNextEpisode}
+                  setView={setView}
+                  handlePlayEpisode={handlePlayEpisode}
+                  getTitle={getTitle}
+                  getStreamUrl={getStreamUrl}
+                  isVideoFile={isVideoFile}
+                />
+              )
             )}
           </AnimatePresence>
         </div>

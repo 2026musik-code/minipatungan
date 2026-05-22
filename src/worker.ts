@@ -160,8 +160,32 @@ app.get("/api/proxy/vtt", async (c) => {
   }
 });
 
-app.get("/api/download", (c) => {
-  return c.text("Fitur download dinonaktifkan di Cloudflare Worker karena limitasi ffmpeg.", 403);
+app.get("/api/download", async (c) => {
+  const url = c.req.query("url");
+  let title = c.req.query("title") || "video";
+  title = title.replace(/[^a-zA-Z0-9 ]/g, "");
+  
+  if (!url) {
+    return c.text("URL tidak ditemukan.", 400);
+  }
+
+  // Jika URL adalah m3u8, beritahu bahwa tidak bisa di download langsung
+  if (url.includes('.m3u8')) {
+    return c.html(`<html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:50px;"><h3>Format M3U8 tidak bisa didownload langsung</h3><p>Gunakan aplikasi pihak ketiga (seperti IDM atau m3u8 downloader) untuk mendownload link ini:</p><div style="padding:10px;background:#222;word-break:break-all;font-size:12px;margin-bottom:20px;">${url}</div><button onclick="window.close()" style="padding:10px 20px;background:orange;color:#000;border:none;border-radius:10px;font-weight:bold;">Tutup</button></body></html>`);
+  }
+
+  try {
+    const response = await fetch(url);
+    const headers = new Headers(response.headers);
+    headers.set("Content-Disposition", `attachment; filename="${title}.mp4"`);
+    
+    return new Response(response.body, {
+      status: response.status,
+      headers
+    });
+  } catch (error) {
+    return c.redirect(url);
+  }
 });
 
 
