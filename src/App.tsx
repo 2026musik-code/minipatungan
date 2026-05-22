@@ -224,9 +224,14 @@ export default function App() {
       });
       const data: any = await res.json();
       const paymentData = data.data || data; // Handle nested 'data' object commonly used by payment gateways
+      const paymentInfo = paymentData.payment_info || {};
 
-      if (paymentData && (paymentData.qr_string || paymentData.qr_url || paymentData.checkout_url || paymentData.payment_url)) {
-        setQrCodeData(paymentData);
+      const qrString = paymentInfo.qr_string || paymentData.qr_string;
+      const qrUrl = paymentInfo.qr_url || paymentData.qr_url;
+      const checkoutUrl = paymentData.pay_url || paymentData.checkout_url || paymentData.payment_url;
+
+      if (qrString || qrUrl || checkoutUrl) {
+        setQrCodeData({ qr_string: qrString, qr_url: qrUrl, checkout_url: checkoutUrl });
       } else {
         alert("Gagal membuat transaksi: " + (data.message || data.error || JSON.stringify(data)));
       }
